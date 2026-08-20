@@ -1,0 +1,9 @@
+{
+  "scripts": {
+    "build": "node build.mjs",
+    "check": "node --check app.js"
+  },
+  "dependencies": {
+    "jsdom": "^29.1.1"
+  }
+}

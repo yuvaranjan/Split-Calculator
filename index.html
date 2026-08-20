@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#f7f8fa" />
+  <title>Splitwise — Simple expense splits</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <main class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="#top" aria-label="Splitwise home"><span class="brand-mark">↗</span><span>splitwise</span></a>
+      <div class="topbar-actions"><span class="offline-dot"></span><span>Saved locally</span><button class="button button-ghost" id="exportButton">Export CSV</button><button class="button button-ghost" id="exportJsonButton">Backup JSON</button><label class="button button-ghost file-button">Import JSON<input id="importJsonInput" type="file" accept="application/json,.json" hidden /></label></div>
+    </header>
+
+    <section class="notebook-bar card">
+      <div class="notebook-picker"><span class="eyebrow">NOTEBOOK</span><select id="notebookSelect" aria-label="Active notebook"></select><span id="notebookMeta" class="helper-text"></span></div>
+      <div class="notebook-actions"><button class="button button-primary" id="newNotebookButton" type="button">+ New notebook</button><button class="button button-ghost" id="manageNotebookButton" type="button">Manage</button></div>
+    </section>
+
+    <section class="hero" id="top">
+      <div><p class="eyebrow">HOUSEHOLD LEDGER</p><h1>Keep the little things<br /><em>easy.</em></h1><p class="hero-copy">Track shared expenses, see who owes whom, and stay settled — all on this device.</p></div>
+      <div class="hero-stat"><span>Total tracked</span><strong id="totalTracked">₹0.00</strong><small id="expenseCount">0 expenses</small></div>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="main-column">
+        <section class="card bulk-card">
+          <div class="section-heading"><div><p class="eyebrow">AI ASSIST</p><h2>Paste a batch of expenses</h2><p class="helper-text">Describe who paid what in plain language. Review everything before it enters your ledger.</p></div><span class="step-pill">AI</span></div>
+          <textarea id="bulkText" class="bulk-text" rows="5" placeholder="e.g. I paid ₹2,400 for groceries yesterday. Split equally with Alex and Sam. Alex paid ₹800 for internet, split between Alex and me."></textarea>
+          <div class="bulk-actions"><button class="button button-primary" id="parseButton" type="button">Suggest entries ↗</button><span class="bulk-note">Requires an online model connection</span></div>
+          <p id="bulkMessage" class="form-message" role="alert"></p>
+          <div id="bulkPreview" class="bulk-preview" hidden><div class="preview-heading"><div><span class="field-label">Review suggestions</span><p class="helper-text">Edit any row, then confirm to add it to your ledger.</p></div><button class="button button-primary" id="confirmBulkButton" type="button">Confirm all</button></div><div id="bulkTable" class="bulk-table"></div></div>
+        </section>
+        <section class="card quick-add-card">
+          <div class="section-heading"><div><p class="eyebrow" id="entryEyebrow">NEW EXPENSE</p><h2 id="entryTitle">Log a shared expense</h2></div><div class="segmented entry-mode-toggle" role="group" aria-label="Entry type"><button type="button" data-entry-mode="expense" class="active">Expense</button><button type="button" data-entry-mode="transfer">Transfer</button></div></div>
+          <form id="expenseForm" novalidate>
+            <div class="form-row form-row-primary"><label class="field"><span>Description</span><input id="description" name="description" type="text" placeholder="e.g. Groceries, internet bill" maxlength="80" required /></label><label class="field amount-field"><span>Amount</span><div class="input-prefix"><span>₹</span><input id="amount" name="amount" type="number" min="0.01" step="0.01" placeholder="0.00" required /></div></label></div>
+            <div class="form-row form-row-triple"><label class="field"><span>Paid by</span><select id="payer" name="payer"></select></label><label class="field"><span>Date</span><input id="date" name="date" type="date" required /></label><label class="field"><span>Category</span><select id="category" name="category"></select></label></div>
+            <div class="split-header"><div><span class="field-label" id="splitLabel">Split between</span><p class="helper-text" id="splitHelper">Choose who shares this expense.</p></div><button type="button" class="text-button" id="selectAllButton">Select all</button></div>
+            <div id="participantList" class="participant-list"></div>
+            <div class="share-type-row"><div><span class="field-label">Share type</span><p class="helper-text">How should the amount be divided?</p></div><div class="segmented" role="group" aria-label="Share type"><button type="button" data-share="equal" class="active">Equal</button><button type="button" data-share="exact">Exact</button><button type="button" data-share="percentage">Percent</button></div></div>
+            <div id="shareInputs" class="share-inputs" hidden></div>
+            <p id="formMessage" class="form-message" role="alert"></p>
+            <div class="form-actions"><button class="button button-primary submit-button" type="submit"><span id="submitLabel">Add expense</span><span>↗</span></button><button class="button button-ghost cancel-button" id="cancelEditButton" type="button" hidden>Cancel edit</button></div>
+          </form>
+          <form id="transferForm" novalidate hidden>
+            <div class="form-row form-row-primary"><label class="field"><span>Note</span><input id="transferDescription" type="text" placeholder="e.g. Settling groceries" maxlength="80" /></label><label class="field amount-field"><span>Amount</span><div class="input-prefix"><span>₹</span><input id="transferAmount" type="number" min="0.01" step="0.01" placeholder="0.00" required /></div></label></div>
+            <div class="form-row form-row-triple"><label class="field"><span>Paid by</span><select id="transferPayer"></select></label><label class="field"><span>Paid to</span><select id="transferRecipient"></select></label><label class="field"><span>Date</span><input id="transferDate" type="date" required /></label></div>
+            <p class="helper-text transfer-helper">A balance transfer settles an existing amount owed; it is never counted as an expense.</p>
+            <p id="transferMessage" class="form-message" role="alert"></p>
+            <div class="form-actions"><button class="button button-primary submit-button" type="submit"><span id="transferSubmitLabel">Add transfer</span><span>↔</span></button><button class="button button-ghost cancel-button" id="cancelTransferEditButton" type="button" hidden>Cancel edit</button></div>
+          </form>
+        </section>
+
+        <section class="card activity-card">
+          <div class="section-heading"><div><p class="eyebrow">ACTIVITY</p><h2>Recent activity</h2></div><span class="count-badge" id="activityCount">0</span></div>
+          <div class="activity-filters"><input id="searchInput" type="search" placeholder="Search expenses" aria-label="Search expenses" /><select id="filterMember"><option value="">All members</option></select><select id="filterCategory"><option value="">All categories</option></select><select id="filterStatus"><option value="">All status</option><option value="unsettled">Unsettled</option><option value="settled">Settled</option></select></div>
+          <div id="activityList" class="activity-list"></div>
+        </section>
+      </div>
+
+      <aside class="side-column">
+        <section class="card balances-card"><div class="section-heading"><div><p class="eyebrow">RIGHT NOW</p><h2>Balances</h2></div><span class="sparkle">✦</span></div><div id="balanceList" class="balance-list"></div><div id="settlementList" class="settlement-list"></div></section>
+        <section class="card people-card"><div class="section-heading"><div><p class="eyebrow">NOTEBOOK MEMBERS</p><h2>People</h2></div><span id="peopleCount" class="count-badge">0</span></div><div id="peopleList" class="people-list"></div><form id="personForm" class="person-form"><input id="personName" type="text" maxlength="30" placeholder="Add someone" aria-label="Person name" required /><button class="icon-button" type="submit" aria-label="Add person">+</button></form></section>
+        <section class="card notebook-summary-card"><p class="eyebrow">NOTEBOOK SUMMARY</p><div class="summary-grid"><div><span>Total spent</span><strong id="summarySpent">₹0.00</strong></div><div><span>Expenses</span><strong id="summaryExpenses">0</strong></div><div><span>Unsettled</span><strong id="summaryUnsettled">₹0.00</strong></div></div><p id="notebookNotes" class="helper-text"></p></section>
+        <section class="tip-card"><span class="tip-icon">⌁</span><div><strong>Private by design</strong><p>Your data stays in this browser. Export whenever you want a backup.</p></div></section>
+      </aside>
+    </section>
+    <footer>splitwise <span>•</span> a tiny, local-first ledger</footer>
+  </main>
+  <div id="appDialog" class="app-dialog" hidden aria-hidden="true">
+    <div class="app-dialog-backdrop" data-dialog-dismiss></div>
+    <section class="app-dialog-panel" role="dialog" aria-modal="true" aria-labelledby="dialogTitle" aria-describedby="dialogMessage">
+      <button class="dialog-close" id="dialogClose" type="button" aria-label="Close dialog">×</button>
+      <p class="eyebrow" id="dialogEyebrow">ACTION REQUIRED</p>
+      <h2 id="dialogTitle">Confirm action</h2>
+      <p class="dialog-message" id="dialogMessage"></p>
+      <form id="dialogForm">
+        <label class="dialog-field" id="dialogField" hidden>
+          <span id="dialogFieldLabel">Value</span>
+          <input id="dialogInput" type="text" autocomplete="off" />
+          <select id="dialogSelect"></select>
+        </label>
+        <div class="dialog-actions">
+          <button class="button button-ghost" id="dialogCancel" type="button">Cancel</button>
+          <button class="button button-primary" id="dialogConfirm" type="submit">Continue</button>
+        </div>
+      </form>
+    </section>
+  </div>
+  <script src="config.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

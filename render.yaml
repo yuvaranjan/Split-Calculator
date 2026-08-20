@@ -1,0 +1,18 @@
+services:
+  - type: web
+    name: split-calculator-api
+    runtime: python
+    buildCommand: "python -m py_compile server.py"
+    startCommand: "python server.py"
+    healthCheckPath: /api/health
+    envVars:
+      - key: PORT
+        value: 10000
+      - key: ALLOWED_ORIGIN
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_MODEL
+        value: gpt-4o-mini
+      - key: LLM_API_URL
+        value: https://api.openai.com/v1/chat/completions
